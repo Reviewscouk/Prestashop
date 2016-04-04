@@ -12,7 +12,6 @@ if (!defined('_PS_VERSION_'))
 
 class ReviewsCoUk extends Module
 {
-
 	public function __construct()
 	{
 		$this->name = 'reviewscouk';

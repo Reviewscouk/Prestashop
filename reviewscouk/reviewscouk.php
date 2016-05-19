@@ -12,6 +12,20 @@ if (!defined('_PS_VERSION_'))
 
 class ReviewsCoUk extends Module
 {
+
+	protected $configOptions = array(
+		'REVIEWSCOUK_CONFIG_REGION',
+		'REVIEWSCOUK_CONFIG_STOREID',
+		'REVIEWSCOUK_CONFIG_APIKEY',
+		'REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET',
+		'REVIEWSCOUK_CONFIG_AUTO_MERCHANT',
+		'REVIEWSCOUK_CONFIG_AUTO_PRODUCT',
+		'REVIEWSCOUK_CONFIG_WIDGET_COLOR',
+		'REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET',
+		'REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET',
+		'REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON'
+	);
+
 	public function __construct()
 	{
 		$this->name = 'reviewscouk';
@@ -53,22 +67,18 @@ class ReviewsCoUk extends Module
 			Shop::setContext(Shop::CONTEXT_ALL);
         }
 
-		if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus')){
+		if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus') || !$this->registerHook('footer')){
 			return false;
         } else {
 			return true;
-        }     
+        }
 	}
 
 	public function uninstall()
 	{
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_REGION');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_STOREID');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_APIKEY');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_AUTO_MERCHANT');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_AUTO_PRODUCT');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET');
-		Configuration::deleteByName('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
+		foreach($this->configOptions as $configOption){
+			Configuration::deleteByName($configOption);
+		}
 
 		return parent::uninstall();
 	}
@@ -77,122 +87,40 @@ class ReviewsCoUk extends Module
 	{
 		$output = null;
 
-		if (Tools::isSubmit('submit'.$this->name))
-		{
-		    $reviews_config_region                              = (string)Tools::getValue('REVIEWSCOUK_CONFIG_REGION');
-			$reviews_config_storeid 							= (string)Tools::getValue('REVIEWSCOUK_CONFIG_STOREID');
-			$reviews_config_apikey								= (string)Tools::getValue('REVIEWSCOUK_CONFIG_APIKEY');
-			$reviews_config_display_product_widget				= (string)Tools::getValue('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET');
-			$reviews_config_auto_merchant						= (string)Tools::getValue('REVIEWSCOUK_CONFIG_AUTO_MERCHANT');
-			$reviews_config_auto_product						= (string)Tools::getValue('REVIEWSCOUK_CONFIG_AUTO_PRODUCT');
-		    $reviews_config_widget_color                        = (string)Tools::getValue('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
-
-			if (!$reviews_config_storeid || empty($reviews_config_storeid))
-			{
-				$output .= $this->displayError($this->l('Please enter your Store ID.'));
-				Configuration::updateValue('REVIEWSCOUK_CONFIG_STOREID', $reviews_config_storeid);
-			}
-			else
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_STOREID') != $reviews_config_storeid)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_STOREID', $reviews_config_storeid);
-					$output .= $this->displayConfirmation($this->l('Store ID set'));
+		if (Tools::isSubmit('submit'.$this->name)){
+			foreach($this->configOptions as $updateOption){
+				$val = (string)Tools::getValue($updateOption);
+				if(!empty($val)){
+					Configuration::updateValue($updateOption, $val);
 				}
 			}
 
-			if (!$reviews_config_apikey || empty($reviews_config_apikey))
-			{
-				$output .= $this->displayError($this->l('Please enter your API Key'));
-				Configuration::updateValue('REVIEWSCOUK_CONFIG_APIKEY', $reviews_config_apikey);
-			}
-			else
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_APIKEY') != $reviews_config_apikey)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_APIKEY', $reviews_config_apikey);
-					$output .= $this->displayConfirmation($this->l('API Key set'));
-				}
-			}
-
-			if (!empty($reviews_config_widget_color))
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR') != $reviews_config_apikey)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_WIDGET_COLOR', $reviews_config_widget_color);
-					$output .= $this->displayConfirmation($this->l('Widget Color Updated'));
-				}
-			}
-
-			if (!empty($reviews_config_region))
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_REGION') != $reviews_config_region)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_REGION', $reviews_config_region);
-					$output .= $this->displayConfirmation($this->l('Updated Region'));
-				}
-			}
-
-			if ($reviews_config_display_product_widget || !empty($reviews_config_display_product_widget))
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') != $reviews_config_display_product_widget)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', $reviews_config_display_product_widget);
-					$letter = $this->letterGetter($reviews_config_display_product_widget);
-					$output .= $this->displayConfirmation($this->l('Product widget will no'.$letter.' be displayed.'));
-				}
-			}
-
-			if ($reviews_config_auto_merchant || !empty($reviews_config_auto_merchant))
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') != $reviews_config_auto_merchant)
-				{
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_AUTO_MERCHANT', $reviews_config_auto_merchant);
-					$letter = $this->letterGetter($reviews_config_auto_merchant);
-					$output .= $this->displayConfirmation($this->l('Merchant Review requests will no'.$letter.' be queued automatically.'));
-				}
-			}
-
-			if ($reviews_config_auto_product || !empty($reviews_config_auto_product))
-			{
-				if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') != $reviews_config_auto_product)
-				{
-					$letter = $this->letterGetter($reviews_config_auto_product);
-					Configuration::updateValue('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', $reviews_config_auto_product);
-					$output .= $this->displayConfirmation($this->l('Product Review requests will no'.$letter.' be queued automatically.'));
-				}
-			}
+			$output = $this->displayConfirmation($this->l('Settings Updated'));
 		}
 
 		return $output.$this->displayForm();
 	}
 
-	private function letterGetter($val_to_switch)
-	{
-		switch ($val_to_switch)
-		{
-			case '2':
-				$letter = 't';
-				break;
-			case '1':
-				$letter = 'w';
-				break;
-			default:
-				$letter = 'rris';
-				break;
-		}
-		return $letter;
+	protected function yesNoOption($name, $title){
+		$yes_no_options = array(array('id_option' => 1, 'name' => 'Yes'), array('id_option' => 2,	'name' => 'No'));
+		return array('type' => 'select',
+				'label' => $this->l($title),
+				'name' => $name,
+				'required' => true,
+				'options' => array(
+					'query' => $yes_no_options,
+					'id' => 'id_option',
+					'name' => 'name'
+				)
+		);
 	}
 
 	public function displayForm()
 	{
-		$yes_no_options = array(array('id_option' => 1, 'name' => 'Yes'), array('id_option' => 2,	'name' => 'No'));
 		$fields_form = array();
 
 		$fields_form[0]['form'] = array(
-
 				'legend' => array('title' => $this->l('Settings')),
-
 				'input' => array(
 						array(
 								'type' => 'select',
@@ -212,7 +140,6 @@ class ReviewsCoUk extends Module
 								'size' => 20,
 								'required' => true
 						),
-
 						array(
 								'type' => 'text',
 								'label' => $this->l('Your Reviews.co.uk API Key'),
@@ -220,42 +147,10 @@ class ReviewsCoUk extends Module
 								'size' => 20,
 								'required' => true
 						),
-
-
-						array('type' => 'select',
-								'label' => $this->l('Automatic Merchant Review Requests:'),
-								'name' => 'REVIEWSCOUK_CONFIG_AUTO_MERCHANT',
-								'required' => true,
-								'options' => array(
-										'query' => $yes_no_options,
-										'id' => 'id_option',
-										'name' => 'name'
-								)
-						),
-
-						array(
-								'type' => 'select',
-								'label' => $this->l('Automatic Product Review Requests:'),
-								'name' => 'REVIEWSCOUK_CONFIG_AUTO_PRODUCT',
-								'required' => true,
-								'options' => array(
-										'query' => $yes_no_options,
-										'id' => 'id_option',
-										'name' => 'name'
-								)
-                        ),
-
-						array(
-								'type' => 'select',
-								'label' => $this->l('Display the product reviews widget:'),
-								'name' => 'REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET',
-								'required' => true,
-								'options' => array(
-									'query' => $yes_no_options,
-									'id' => 'id_option',
-									'name' => 'name'
-								)
-						),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_MERCHANT', 'Automatic Merchant Review Requests:'),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', 'Automatic Product Review Requests:'),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', 'Display the product reviews widget:'),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON', 'Show Write Review Button on Product Widget:'),
 						array(
 								'type' => 'text',
 								'label' => $this->l('Product Reviews Widget Hex Color: '),
@@ -263,9 +158,10 @@ class ReviewsCoUk extends Module
 								'size' => 10,
 								'required' => false
 						),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET', 'Enable Product Rich Snippets:'),
+						$this->yesNoOption('REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET', 'Enable Merchant Rich Snippets:'),
 
 				),
-
 				'submit' => array(
 						'title' => $this->l('Save'),
 						'class' => 'button'
@@ -295,13 +191,9 @@ class ReviewsCoUk extends Module
 				)
 		);
 
-		$helper->fields_value['REVIEWSCOUK_CONFIG_REGION'] = Configuration::get('REVIEWSCOUK_CONFIG_REGION');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_STOREID'] = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_APIKEY'] = Configuration::get('REVIEWSCOUK_CONFIG_APIKEY');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET'] = Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_AUTO_MERCHANT'] = Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_AUTO_PRODUCT'] = Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT');
-		$helper->fields_value['REVIEWSCOUK_CONFIG_WIDGET_COLOR'] = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
+		foreach($this->configOptions as $configOption){
+			$helper->fields_value[$configOption] = Configuration::get($configOption);
+		}
 
 		return $helper->generateForm($fields_form);
 	}
@@ -310,6 +202,24 @@ class ReviewsCoUk extends Module
        return preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/i', $color);
     }
 
+	public function hookfooter($params){
+		// If not product page
+		if(!($_GET['id_product'] > 0)){
+			if (Configuration::get('REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET') == '1'){
+				return $this->getRichSnippetCode();
+			}
+		}
+	}
+
+	protected function getRichSnippetCode($sku=''){
+		$storeId = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
+		$region = Configuration::get('REVIEWSCOUK_CONFIG_REGION');
+
+		$code = '<script src="'.$this->widgetDomain().'rich-snippet/dist.js"></script><script>richSnippet({ store: "'.$storeId.'", sku: "'.$sku.'" })</script>';
+
+		return $code;
+	}
+
 	public function hookproductfooter($params)
 	{
 		if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')
@@ -317,6 +227,7 @@ class ReviewsCoUk extends Module
 			$product_sku = $params['product']->id;
 			$store_id = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
 			$color = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
+			$writeButton = Configuration::get('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON');
 
             if(!$this->isColor($color)){
                 $color = '#10D577';
@@ -336,10 +247,14 @@ class ReviewsCoUk extends Module
             tabClr: "#eee",
             ratingStars: false,
             showAvatars: true,
-            writeButton: true 
+            writeButton: '.($writeButton == '1'? 'true' : 'false').'
             });
             </script>
             ';
+
+			if (Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET') == '1'){
+				$data .= $this->getRichSnippetCode($product_sku);
+			}
 
 			$smarty = $this->context->smarty;
 			$smarty->assign(array('data' => $data));

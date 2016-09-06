@@ -272,20 +272,24 @@ class ReviewsCoUk extends Module
         $last_name = $customer->lastname;
         $email = $customer->email;
 
-        $products = $params['cart']->getProducts(true);
+        $products = $order->getProducts();
         $products_array = array();
 
         foreach ($products as $product)
         {
 
-            $id_image = $product['id_image'];
-            $image = new Image($id_image);
+			$product_id = $product['product_id'];
+
+			$image = Image::getCover($product_id);
+			$link = new Link;
+			$prod = new Product($product_id, false, Context::getContext()->language->id);
+			$imagePath = $link->getImageLink($prod->link_rewrite, $image['id_image'], 'home_default');
 
             $product_item = array(
-                'name' => $product['name'],
-                'sku' => $product['id_product'],
-                'link' => 'http://'.$_SERVER['SERVER_NAME'].'/index.php?controller=product&id_product='.$id_product,
-                'image' => _PS_BASE_URL_._THEME_PROD_DIR_.$image->getExistingImgPath().'.jpg'
+                'name' => $product['product_name'],
+                'sku' => $product['product_id'],
+                'link' => $_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/index.php?controller=product&id_product='.$product['product_id'],
+                'image' => $_SERVER['REQUEST_SCHEME'].'://'.$imagePath
             );
 
             $products_array[] = $product_item;

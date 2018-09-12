@@ -224,7 +224,7 @@ class ReviewsCoUk extends Module
 	{
 		if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')
 		{
-			$product_sku = $params['product']->id;
+			$product_sku = $params['product']['id'];
 			$store_id = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
 			$color = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
 			$writeButton = Configuration::get('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON');

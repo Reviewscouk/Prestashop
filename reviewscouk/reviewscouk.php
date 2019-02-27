@@ -34,7 +34,7 @@ class ReviewsCoUk extends Module
 		$this->author = 'Reviews.co.uk Integrations';
 		$this->module_key = '7f216a86f806f343c2888324f3504ecf';
 		$this->need_instance = 0;
-		$this->ps_versions_compliancy = array('min' => '1.5', 'max' => '1.7');
+		$this->ps_versions_compliancy = array('min' => '1.5', 'max' => '1.7.5');
 		$this->bootstrap = true;
 
 		$this->displayName = $this->l('Reviews.co.uk');

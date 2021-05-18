@@ -255,6 +255,7 @@ class ReviewsCoUk extends Module
 										//Display product reviews - include multiple product SKUs seperated by Semi-Colons (Main Indentifer in your product catalog )
 										sku: "'.$product_sku.'",
 										hide_if_no_results: false,
+										enable_rich_snippets: "'. (Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET') == '1' ? true : false) .'"
 								},
 								//Questions settings:
 								questions:{
@@ -423,9 +424,6 @@ class ReviewsCoUk extends Module
             </script>
             ';
 
-			if (Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET') == '1'){
-				$data .= $this->getRichSnippetCode($product_sku);
-			}
 
 			$smarty = $this->context->smarty;
 			$smarty->assign(array('data' => $data));

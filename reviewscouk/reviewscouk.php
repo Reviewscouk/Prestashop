@@ -650,13 +650,13 @@ class ReviewsCoUk extends Module
 		{
 			$products_array = array();
 				foreach ($products as $p) {
-						$product = new Product((int)$p['id_product'], true);
+						$product = new Product((int)$p['id_product'], true, Context::getContext()->language->id);
 						$combinations = (isset($p['product_attribute_id']))
-								? $product->getAttributeCombinationsById((int)$p['product_attribute_id'])
+								? $product->getAttributeCombinationsById((int)$p['product_attribute_id'], Context::getContext()->language->id)
 								: array();
-						$combination = count($combinations) > 0 ? (object) $combinations[0] : null;
+						$comb = count($combinations) > 0 ? (object) $combinations[0] : null;
 						$image = Image::getCover((int)$p['id_product']);
-						$image_url = $this->context->link->getImageLink($product->link_rewrite, $image['id_image']);
+						$image_url = (new Link)->getImageLink($product->link_rewrite, $image['id_image']);
 						$currency = new CurrencyCore($order->id_currency);
 						$description = !empty($product->description) ? $product->description : $product->description_short;
 						$productId = isset($combination) ? $p['product_attribute_id'] : $p['id_product'];
@@ -667,15 +667,15 @@ class ReviewsCoUk extends Module
 										'link' => $product->getLink(),
 										'name' => $product->name,
 										'brand' => !empty($product->manufacturer_name) ? $product->manufacturer_name : '',
-										'sku' => $this->getAttribute($product, $combination, 'skuSelector'),
-										'gtin' => $this->getAttribute($product, $combination, 'gtinSelector'),
-										'mpn' => $this->getAttribute($product, $combination, 'mpnSelector'),
-										'image_url' => $image_url,
-										'price' => number_format($product->getPrice(), 2),
+										'sku' => $this->getAttribute($product, $comb, 'sku'),
+										'gtin' => $this->getAttribute($product, $comb, 'gtin'),
+										'mpn' => $this->getAttribute($product, $comb, 'mpn'),
+										'image_url' => $_SERVER['REQUEST_SCHEME'].'://'.$imagePath,
+
 										'currency' => $currency->iso_code,
 										'category' => $this->getProductCategories($product),
 										'description' => html_entity_decode($this->stripAllTags($description, true)),
-										'tags' => explode(',', $product->getTags($id_lang)),
+										'tags' => explode(',', $product->getTags(Context::getContext()->language->id)),
 										'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
 										'meta_description' => $product->meta_description,
 										'brand' => $product->manufacturer_name ? (string)($product->manufacturer_name) : null,
@@ -685,6 +685,20 @@ class ReviewsCoUk extends Module
 
 			return $products_array;
 		}
+
+		public function getAttribute($product, $combination, $selector)
+		{
+			if (isset($combination) && !empty($combination->{$selector})) {
+						return $combination->{$selector};
+				}
+
+				if (!empty($product->{$selector})) {
+						return $product->{$selector};
+				}
+
+				return '';
+		}
+
     public function hookpostUpdateOrderStatus($params)
     {
         if ($params['newOrderStatus']->shipped == '1')

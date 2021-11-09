@@ -678,8 +678,7 @@ class ReviewsCoUk extends Module
 										'category' => implode(' > ', $this->getProductCategories($product)),
 										'tags' => $product->getTags(Context::getContext()->language->id),
 										'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
-										'description' => $product->meta_description,
-										'brand' => $product->manufacturer_name ? (string)($product->manufacturer_name) : null,
+										'description' => $product->meta_description
 								)
 						);
 				}

@@ -16,6 +16,7 @@ class ReviewsCoUk extends Module
         'REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET',
         'REVIEWSCOUK_CONFIG_AUTO_MERCHANT',
         'REVIEWSCOUK_CONFIG_AUTO_PRODUCT',
+				'REVIEWSCOUK_USE_ID',
         'REVIEWSCOUK_CONFIG_WIDGET_COLOR',
         'REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET',
         'REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET',
@@ -165,8 +166,9 @@ class ReviewsCoUk extends Module
                     'required' => true
                 ) ,
                 $this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_MERCHANT', 'Automatic Merchant Review Requests:') ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', 'Automatic Product Review Requests:') ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', 'Display the product reviews widget:') ,
+								$this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', 'Automatic Product Review Requests:') ,
+                $this->yesNoOption('REVIEWSCOUK_USE_ID', 'Use Product IDs instead of References:') ,
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', 'Display the Product Reviews Widget:') ,
                 $this->yesNoOption('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON', 'Show Write Review Button on Product Widget:') ,
                 array(
                     'type' => 'text',
@@ -234,7 +236,7 @@ class ReviewsCoUk extends Module
     {
         if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')
         {
-            $product_sku = $params['product']['id'];
+						$product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getAttribute((object)$params['product'], null, 'reference');
             $store_id = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
             $color = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
             $writeButton = Configuration::get('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON');
@@ -242,6 +244,7 @@ class ReviewsCoUk extends Module
             {
                 $color = '#10D577';
             }
+
             $data = '
 
             <script src="' . $this->widgetDomain() . 'polaris/build.js"></script>
@@ -657,7 +660,6 @@ class ReviewsCoUk extends Module
 						$comb = count($combinations) > 0 ? (object) $combinations[0] : null;
 						$image = Image::getCover((int)$p['id_product']);
 						$image_url = (new Link)->getImageLink($product->link_rewrite, $image['id_image']);
-						$currency = new CurrencyCore($order->id_currency);
 						$description = !empty($product->description) ? $product->description : $product->description_short;
 						$productId = isset($combination) ? $p['product_attribute_id'] : $p['id_product'];
 						array_push(
@@ -667,17 +669,14 @@ class ReviewsCoUk extends Module
 										'link' => $product->getLink(),
 										'name' => $product->name,
 										'brand' => !empty($product->manufacturer_name) ? $product->manufacturer_name : '',
-										'sku' => $this->getAttribute($product, $comb, 'sku'),
-										'gtin' => $this->getAttribute($product, $comb, 'gtin'),
-										'mpn' => $this->getAttribute($product, $comb, 'mpn'),
-										'image_url' => $_SERVER['REQUEST_SCHEME'].'://'.$imagePath,
-
-										'currency' => $currency->iso_code,
-										'category' => $this->getProductCategories($product),
-										'description' => html_entity_decode($this->stripAllTags($description, true)),
-										'tags' => explode(',', $product->getTags(Context::getContext()->language->id)),
+										'sku' => Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $productId : $this->getAttribute($product, $comb, 'reference'),
+										'gtin' => $this->getAttribute($product, $comb, 'ean13'),
+										'mpn' => $this->getAttribute($product, $comb, 'upc'),
+										'image_url' => $_SERVER['REQUEST_SCHEME'].'://'.$image_url,
+										'category' => implode(' > ', $this->getProductCategories($product)),
+										'tags' => $product->getTags(Context::getContext()->language->id),
 										'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
-										'meta_description' => $product->meta_description,
+										'description' => $product->meta_description,
 										'brand' => $product->manufacturer_name ? (string)($product->manufacturer_name) : null,
 								)
 						);
@@ -686,7 +685,17 @@ class ReviewsCoUk extends Module
 			return $products_array;
 		}
 
-		public function getAttribute($product, $combination, $selector)
+		private function getProductCategories($product)
+		{
+				$categories = array();
+				$productCategoriesFull = $product->getProductCategoriesFull($product->id);
+				foreach ($productCategoriesFull as $category) {
+						array_push($categories, $category['name']);
+				}
+				return $categories;
+		}
+
+		private function getAttribute($product, $combination, $selector)
 		{
 			if (isset($combination) && !empty($combination->{$selector})) {
 						return $combination->{$selector};
@@ -695,6 +704,16 @@ class ReviewsCoUk extends Module
 				if (!empty($product->{$selector})) {
 						return $product->{$selector};
 				}
+
+
+				if (!empty($product->attributes) && is_array($product->attributes)) {
+					foreach($product->attributes as $attrArray) {
+						if(isset($attrArray[$selector])) {
+							return $attrArray[$selector];
+						}
+					}
+				}
+
 
 				return '';
 		}

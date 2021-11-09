@@ -249,9 +249,11 @@ class ReviewsCoUk extends Module
 
             <script src="' . $this->widgetDomain() . 'polaris/build.js"></script>
 
+						<div id="ReviewsWidget"></div>
+
             <script type="text/javascript">
 
-						new ReviewsWidget("#PolarisReviewsWidget", {
+						new ReviewsWidget("#ReviewsWidget", {
 
 							//Your REVIEWS.io account ID and widget type:
 

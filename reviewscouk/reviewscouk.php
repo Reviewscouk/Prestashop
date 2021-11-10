@@ -236,7 +236,7 @@ class ReviewsCoUk extends Module
     {
         if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')
         {
-						$product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getAttribute((object)$params['product'], null, 'reference');
+						$product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getAttribute((object)$params['product'], null, 'widget_reference');
             $store_id = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
             $color = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
             $writeButton = Configuration::get('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON');
@@ -707,13 +707,18 @@ class ReviewsCoUk extends Module
 				}
 
 
-				if (!empty($product->attributes) && is_array($product->attributes)) {
-					foreach($product->attributes as $attrArray) {
-						if(isset($attrArray[$selector])) {
-							return $attrArray[$selector];
-						}
-					}
-				}
+        if($selector == 'widget_reference') {
+          if (!empty($product->attributes) && is_array($product->attributes)) {
+            $skus = [];
+            foreach($product->attributes as $attrArray) {
+              if(isset($attrArray['reference'])) {
+                $skus[] = $attrArray['reference'];
+              }
+            }
+            return implode(';', $skus);
+          }
+        }
+
 
 
 				return '';

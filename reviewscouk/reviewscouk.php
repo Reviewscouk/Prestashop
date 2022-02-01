@@ -217,7 +217,7 @@ class ReviewsCoUk extends Module
     public function hookfooter($params)
     {
         // If not product page
-        if (!($_GET['id_product'] > 0))
+        if (isset($_GET['id_product']) && !($_GET['id_product'] > 0))
         {
             if (Configuration::get('REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET') == '1')
             {

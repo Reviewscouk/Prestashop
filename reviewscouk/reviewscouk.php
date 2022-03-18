@@ -18,7 +18,6 @@ class ReviewsCoUk extends Module
         'REVIEWSCOUK_CONFIG_AUTO_PRODUCT',
 				'REVIEWSCOUK_USE_ID',
         'REVIEWSCOUK_CONFIG_WIDGET_COLOR',
-        'REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET',
         'REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET',
         'REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON'
     );
@@ -178,7 +177,6 @@ class ReviewsCoUk extends Module
                     'required' => false
                 ) ,
                 $this->yesNoOption('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET', 'Enable Product Rich Snippets:') ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET', 'Enable Merchant Rich Snippets:') ,
             ) ,
             'submit' => array(
                 'title' => $this->l('Save') ,
@@ -214,24 +212,7 @@ class ReviewsCoUk extends Module
     {
         return preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/i', $color);
     }
-    public function hookfooter($params)
-    {
-        // If not product page
-        if (isset($_GET['id_product']) && !($_GET['id_product'] > 0))
-        {
-            if (Configuration::get('REVIEWSCOUK_CONFIG_MERCHANT_RICH_SNIPPET') == '1')
-            {
-                return $this->getRichSnippetCode();
-            }
-        }
-    }
-    protected function getRichSnippetCode($sku = '')
-    {
-        $storeId = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
-        $region = Configuration::get('REVIEWSCOUK_CONFIG_REGION');
-        $code = '<script src="' . $this->widgetDomain() . 'rich-snippet/dist.js"></script><script>richSnippet({ store: "' . $storeId . '", sku: "' . $sku . '" })</script>';
-        return $code;
-    }
+
     public function hookproductfooter($params)
     {
         if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')

@@ -64,7 +64,7 @@ class ReviewsCoUk extends Module
         {
             Shop::setContext(Shop::CONTEXT_ALL);
         }
-        if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus') || !$this->registerHook('footer'))
+        if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus'))
         {
             return false;
         }

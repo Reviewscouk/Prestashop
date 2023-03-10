@@ -270,7 +270,7 @@ class ReviewsCoUk extends Module
 
 										hide_if_no_results: false,
 
-										enable_rich_snippets: "' . (Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET') == '1' ? true : false) . '"
+										enable_rich_snippets: ' . (Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET') == '1' ? true : false) . '
 
 								},
 

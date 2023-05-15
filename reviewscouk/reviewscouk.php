@@ -31,7 +31,7 @@ class ReviewsCoUk extends Module
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array(
             'min' => '1.5',
-            'max' => '1.7.8.5'
+            'max' => '1.7.8.9'
         );
         $this->bootstrap = true;
         $this->displayName = $this->l('REVIEWS.io');

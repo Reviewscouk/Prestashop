@@ -1,9 +1,9 @@
 <?php
 /**
- * 2021 REVIEWS.io
+ * 2023 REVIEWS.io
  *
- *  @author    REVIEWS.io <support@reviews.co.uk>
- *  @copyright 2007-2021 REVIEWS.io
+ *  @author    REVIEWS.io <support@reviews.io>
+ *  @copyright 2007-2023 REVIEWS.io
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 if (!defined('_PS_VERSION_')) exit;

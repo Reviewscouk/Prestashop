@@ -1,9 +1,9 @@
 <?php
 /**
- * 2021 REVIEWS.io
+ * 2023 REVIEWS.io
  *
- *  @author    REVIEWS.io <support@reviews.co.uk>
- *  @copyright 2007-2021 REVIEWS.io
+ *  @author    REVIEWS.io <support@reviews.io>
+ *  @copyright 2007-2023 REVIEWS.io
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 if (!defined('_PS_VERSION_')) exit;
@@ -25,13 +25,13 @@ class ReviewsCoUk extends Module
     {
         $this->name = 'reviewscouk';
         $this->tab = 'others';
-        $this->version = '1.2.3';
+        $this->version = '1.2.4';
         $this->author = 'REVIEWS.io';
         $this->module_key = '7f216a86f806f343c2888324f3504ecf';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array(
             'min' => '1.5',
-            'max' => '1.7.8.5'
+            'max' => '1.7.8.9'
         );
         $this->bootstrap = true;
         $this->displayName = $this->l('REVIEWS.io');

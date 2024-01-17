@@ -1,6 +1,6 @@
 <?php
 /**
- * 2023 REVIEWS.io
+ * 2024 REVIEWS.io
  *
  *  @author    REVIEWS.io <support@reviews.io>
  *  @copyright 2007-2023 REVIEWS.io
@@ -16,7 +16,8 @@ class ReviewsCoUk extends Module
         'REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET',
         'REVIEWSCOUK_CONFIG_AUTO_MERCHANT',
         'REVIEWSCOUK_CONFIG_AUTO_PRODUCT',
-				'REVIEWSCOUK_USE_ID',
+        'REVIEWSCOUK_USE_ID',
+        'REVIEWSCOUK_CONFIG_PRODUCT_WIDGET_SKU_OPTION',
         'REVIEWSCOUK_CONFIG_WIDGET_COLOR',
         'REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET',
         'REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON'
@@ -25,58 +26,48 @@ class ReviewsCoUk extends Module
     {
         $this->name = 'reviewscouk';
         $this->tab = 'others';
-        $this->version = '1.2.4';
+        $this->version = '1.2.5';
         $this->author = 'REVIEWS.io';
         $this->module_key = '7f216a86f806f343c2888324f3504ecf';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array(
             'min' => '1.5',
-            'max' => '1.7.8.9'
+            'max' => '1.7.8.11'
         );
         $this->bootstrap = true;
         $this->displayName = $this->l('REVIEWS.io');
         $this->description = $this->l('Automatically queue Merchant and Product review requests, and display reviews on product pages.');
         $this->confirmUninstall = $this->l('No REVIEWS.io Integration? :(');
-        if (($this->isConfigVarNad('REVIEWSCOUK_CONFIG_APIKEY') + ($this->isConfigVarNad('REVIEWSCOUK_CONFIG_STOREID'))) < 3)
-        {
+        if (($this->isConfigVarNad('REVIEWSCOUK_CONFIG_APIKEY') + ($this->isConfigVarNad('REVIEWSCOUK_CONFIG_STOREID'))) < 3) {
             $this->warning = $this->l('Make sure that your STORE ID and API KEY are set.');
         }
         parent::__construct();
     }
     public function isConfigVarNad($config_var)
     {
-        if (!Configuration::get($config_var) || (string)Configuration::get($config_var) == '')
-        {
+        if (!Configuration::get($config_var) || (string)Configuration::get($config_var) == '') {
             return 2;
-        }
-        else
-        {
+        } else {
             return 0;
         }
     }
     public function install()
     {
-        if (!function_exists('curl_init'))
-        {
+        if (!function_exists('curl_init')) {
             $this->setError($this->l('Reviews.co.uk requires cURL.'));
         }
-        if (Shop::isFeatureActive())
-        {
+        if (Shop::isFeatureActive()) {
             Shop::setContext(Shop::CONTEXT_ALL);
         }
-        if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus'))
-        {
+        if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus')) {
             return false;
-        }
-        else
-        {
+        } else {
             return true;
         }
     }
     public function uninstall()
     {
-        foreach ($this->configOptions as $configOption)
-        {
+        foreach ($this->configOptions as $configOption) {
             Configuration::deleteByName($configOption);
         }
         return parent::uninstall();
@@ -84,13 +75,10 @@ class ReviewsCoUk extends Module
     public function getContent()
     {
         $output = null;
-        if (Tools::isSubmit('submit' . $this->name))
-        {
-            foreach ($this->configOptions as $updateOption)
-            {
+        if (Tools::isSubmit('submit' . $this->name)) {
+            foreach ($this->configOptions as $updateOption) {
                 $val = (string)Tools::getValue($updateOption);
-                if (!empty($val))
-                {
+                if (!empty($val)) {
                     Configuration::updateValue($updateOption, $val);
                 }
             }
@@ -104,7 +92,7 @@ class ReviewsCoUk extends Module
             array(
                 'id_option' => 1,
                 'name' => 'Yes'
-            ) ,
+            ),
             array(
                 'id_option' => 2,
                 'name' => 'No'
@@ -112,7 +100,7 @@ class ReviewsCoUk extends Module
         );
         return array(
             'type' => 'select',
-            'label' => $this->l($title) ,
+            'label' => $this->l($title),
             'name' => $name,
             'required' => true,
             'options' => array(
@@ -128,11 +116,11 @@ class ReviewsCoUk extends Module
         $fields_form[0]['form'] = array(
             'legend' => array(
                 'title' => $this->l('Settings')
-            ) ,
+            ),
             'input' => array(
                 array(
                     'type' => 'select',
-                    'label' => $this->l('Region: ') ,
+                    'label' => $this->l('Region: '),
                     'name' => 'REVIEWSCOUK_CONFIG_REGION',
                     'required' => true,
                     'options' => array(
@@ -140,46 +128,66 @@ class ReviewsCoUk extends Module
                             array(
                                 'id_option' => 1,
                                 'name' => 'UK (Reviews.co.uk)'
-                            ) ,
+                            ),
                             array(
                                 'id_option' => 2,
                                 'name' => 'US (Reviews.io)'
                             )
-                        ) ,
+                        ),
                         'id' => 'id_option',
                         'name' => 'name'
                     )
-                ) ,
+                ),
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Your Reviews.co.uk Store ID') ,
+                    'label' => $this->l('Your Reviews.co.uk Store ID'),
                     'name' => 'REVIEWSCOUK_CONFIG_STOREID',
                     'size' => 20,
                     'required' => true
-                ) ,
+                ),
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Your Reviews.co.uk API Key') ,
+                    'label' => $this->l('Your Reviews.co.uk API Key'),
                     'name' => 'REVIEWSCOUK_CONFIG_APIKEY',
                     'size' => 20,
                     'required' => true
-                ) ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_MERCHANT', 'Automatic Merchant Review Requests:') ,
-								$this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', 'Automatic Product Review Requests:') ,
-                $this->yesNoOption('REVIEWSCOUK_USE_ID', 'Use Product IDs instead of References:') ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', 'Display the Product Reviews Widget:') ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON', 'Show Write Review Button on Product Widget:') ,
+                ),
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_MERCHANT', 'Automatic Merchant Review Requests:'),
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_AUTO_PRODUCT', 'Automatic Product Review Requests:'),
+                $this->yesNoOption('REVIEWSCOUK_USE_ID', 'Use Product IDs instead of References:'),
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET', 'Display the Product Reviews Widget:'),
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON', 'Show Write Review Button on Product Widget:'),
+                array(
+                    'type' => 'select',
+                    'label' => $this->l('Location For Grabbing SKU\'s (References Selected) : '),
+                    'name' => 'REVIEWSCOUK_CONFIG_PRODUCT_WIDGET_SKU_OPTION',
+                    'required' => false,
+                    'options' => array(
+                        'query' => array(
+                            array(
+                                'id_option' => 1,
+                                'name' => 'Use Attributes (Legacy)'
+                            ),
+                            array(
+                                'id_option' => 2,
+                                'name' => 'Use Reference Field'
+                            )
+                        ),
+                        'id' => 'id_option',
+                        'name' => 'name'
+                    )
+                ),
                 array(
                     'type' => 'text',
-                    'label' => $this->l('Product Reviews Widget Hex Color: ') ,
+                    'label' => $this->l('Product Reviews Widget Hex Color: '),
                     'name' => 'REVIEWSCOUK_CONFIG_WIDGET_COLOR',
                     'size' => 10,
                     'required' => false
-                ) ,
-                $this->yesNoOption('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET', 'Enable Product Rich Snippets:') ,
-            ) ,
+                ),
+                $this->yesNoOption('REVIEWSCOUK_CONFIG_PRODUCT_RICH_SNIPPET', 'Enable Product Rich Snippets:'),
+            ),
             'submit' => array(
-                'title' => $this->l('Save') ,
+                'title' => $this->l('Save'),
                 'class' => 'button'
             )
         );
@@ -194,16 +202,15 @@ class ReviewsCoUk extends Module
         $helper->submit_action = 'submit' . $this->name;
         $helper->toolbar_btn = array(
             'save' => array(
-                'desc' => $this->l('Save') ,
-                'href' => AdminController::$currentIndex . '&configure=' . $this->name . '&save' . $this->name . '&token=' . Tools::getAdminTokenLite('AdminModules') ,
-            ) ,
+                'desc' => $this->l('Save'),
+                'href' => AdminController::$currentIndex . '&configure=' . $this->name . '&save' . $this->name . '&token=' . Tools::getAdminTokenLite('AdminModules'),
+            ),
             'back' => array(
-                'href' => AdminController::$currentIndex . '&token=' . Tools::getAdminTokenLite('AdminModules') ,
+                'href' => AdminController::$currentIndex . '&token=' . Tools::getAdminTokenLite('AdminModules'),
                 'desc' => $this->l('Back to list')
             )
         );
-        foreach ($this->configOptions as $configOption)
-        {
+        foreach ($this->configOptions as $configOption) {
             $helper->fields_value[$configOption] = Configuration::get($configOption);
         }
         return $helper->generateForm($fields_form);
@@ -215,14 +222,12 @@ class ReviewsCoUk extends Module
 
     public function hookproductfooter($params)
     {
-        if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1')
-        {
-						$product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getAttribute((object)$params['product'], null, 'widget_reference');
+        if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1') {
+            $product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getSku($params);
             $store_id = Configuration::get('REVIEWSCOUK_CONFIG_STOREID');
             $color = Configuration::get('REVIEWSCOUK_CONFIG_WIDGET_COLOR');
             $writeButton = Configuration::get('REVIEWSCOUK_CONFIG_WRITE_REVIEW_BUTTON');
-            if (!$this->isColor($color))
-            {
+            if (!$this->isColor($color)) {
                 $color = '#10D577';
             }
 
@@ -632,92 +637,119 @@ class ReviewsCoUk extends Module
         return $orderData;
     }
 
-		public function formatProducts($products)
-		{
-			$products_array = array();
-				foreach ($products as $p) {
-						$product = new Product((int)$p['id_product'], true, Context::getContext()->language->id);
-						$combinations = (isset($p['product_attribute_id']))
-								? $product->getAttributeCombinationsById((int)$p['product_attribute_id'], Context::getContext()->language->id)
-								: array();
-						$comb = count($combinations) > 0 ? (object) $combinations[0] : null;
-						$image = Image::getCover((int)$p['id_product']);
-						$image_url = (new Link)->getImageLink($product->link_rewrite, $image['id_image']);
-						$description = !empty($product->description) ? $product->description : $product->description_short;
-						$productId = isset($combination) ? $p['product_attribute_id'] : $p['id_product'];
-						array_push(
-								$products_array,
-								array(
-										'id' => $productId,
-										'link' => $product->getLink(),
-										'name' => $product->name,
-										'brand' => !empty($product->manufacturer_name) ? $product->manufacturer_name : '',
-										'sku' => Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $productId : $this->getAttribute($product, $comb, 'reference'),
-										'gtin' => $this->getAttribute($product, $comb, 'ean13'),
-										'mpn' => $this->getAttribute($product, $comb, 'upc'),
-										'image_url' => $_SERVER['REQUEST_SCHEME'].'://'.$image_url,
-										'category' => implode(' > ', $this->getProductCategories($product)),
-										'tags' => $product->getTags(Context::getContext()->language->id),
-										'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
-										'description' => $product->meta_description
-								)
-						);
-				}
-
-			return $products_array;
-		}
-
-		private function getProductCategories($product)
-		{
-				$categories = array();
-				$productCategoriesFull = $product->getProductCategoriesFull($product->id);
-				foreach ($productCategoriesFull as $category) {
-						array_push($categories, $category['name']);
-				}
-				return $categories;
-		}
-
-		private function getAttribute($product, $combination, $selector)
-		{
-			if (isset($combination) && !empty($combination->{$selector})) {
-						return $combination->{$selector};
-				}
-
-				if (!empty($product->{$selector})) {
-						return $product->{$selector};
-				}
-
-
-        if($selector == 'widget_reference') {
-          if (!empty($product->attributes) && is_array($product->attributes)) {
-            $skus = [];
-            foreach($product->attributes as $attrArray) {
-              if(isset($attrArray['reference'])) {
-                $skus[] = $attrArray['reference'];
-              }
-            }
-            return implode(';', $skus);
-          }
+    public function formatProducts($products)
+    {
+        $products_array = array();
+        foreach ($products as $p) {
+            $product = new Product((int)$p['id_product'], true, Context::getContext()->language->id);
+            $combinations = (isset($p['product_attribute_id']))
+                ? $product->getAttributeCombinationsById((int)$p['product_attribute_id'], Context::getContext()->language->id)
+                : array();
+            $comb = count($combinations) > 0 ? (object) $combinations[0] : null;
+            $image = Image::getCover((int)$p['id_product']);
+            $image_url = (new Link)->getImageLink($product->link_rewrite, $image['id_image']);
+            $description = !empty($product->description) ? $product->description : $product->description_short;
+            $productId = isset($combination) ? $p['product_attribute_id'] : $p['id_product'];
+            array_push(
+                $products_array,
+                array(
+                    'id' => $productId,
+                    'link' => $product->getLink(),
+                    'name' => $product->name,
+                    'brand' => !empty($product->manufacturer_name) ? $product->manufacturer_name : '',
+                    'sku' => Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $productId : $this->getAttribute($product, $comb, 'reference'),
+                    'gtin' => $this->getAttribute($product, $comb, 'ean13'),
+                    'mpn' => $this->getAttribute($product, $comb, 'upc'),
+                    'image_url' => $_SERVER['REQUEST_SCHEME'] . '://' . $image_url,
+                    'category' => implode(' > ', $this->getProductCategories($product)),
+                    'tags' => $product->getTags(Context::getContext()->language->id),
+                    'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
+                    'description' => $product->meta_description
+                )
+            );
         }
 
+        return $products_array;
+    }
 
+    private function getProductCategories($product)
+    {
+        $categories = array();
+        $productCategoriesFull = $product->getProductCategoriesFull($product->id);
+        foreach ($productCategoriesFull as $category) {
+            array_push($categories, $category['name']);
+        }
+        return $categories;
+    }
 
-				return '';
-		}
+    private function getSku($params)
+    {
+        $skuLocationOption = (int) Configuration::get('REVIEWSCOUK_CONFIG_PRODUCT_WIDGET_SKU_OPTION');
+
+        switch ($skuLocationOption) {
+            case 1:
+                return $this->getAttribute((object)$params['product'], null, 'widget_reference');
+            case 2:
+                return $this->getSkuFromReference((object) $params['product']);
+            default:
+                return $this->getAttribute((object)$params['product'], null, 'widget_reference');
+        }
+    }
+
+    private function getSkuFromReference($product)
+    {
+        if (empty(($product))) {
+            return '';
+        }
+
+        $skus = [];
+        $reference = (string) $product['reference'];
+        $skuArray = preg_split("/[,;\s]/", $reference);
+
+        foreach ($skuArray as $sku) {
+            if (!empty($sku)) {
+                $skus[] = $sku;
+            }
+        }
+
+        return implode(';', $skus);
+    }
+
+    private function getAttribute($product, $combination, $selector)
+    {
+        if (isset($combination) && !empty($combination->{$selector})) {
+            return $combination->{$selector};
+        }
+
+        if (!empty($product->{$selector})) {
+            return $product->{$selector};
+        }
+
+        if ($selector == 'widget_reference') {
+            if (!empty($product->attributes) && is_array($product->attributes)) {
+                $skus = [];
+                foreach ($product->attributes as $attrArray) {
+                    if (isset($attrArray['reference'])) {
+                        $skus[] = $attrArray['reference'];
+                    }
+                }
+
+                return implode(';', $skus);
+            }
+        }
+
+        return '';
+    }
 
     public function hookpostUpdateOrderStatus($params)
     {
-        if ($params['newOrderStatus']->shipped == '1')
-        {
-            if ((Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') || (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1'))
-            {
+        if ($params['newOrderStatus']->shipped == '1') {
+            if ((Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') || (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1')) {
                 $orderData = $this->prepareOrderData($params);
-                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1')
-                {
+                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') {
                     $this->apiPostRequest('merchant/invitation', $orderData);
                 }
-                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1')
-                {
+                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1') {
                     $this->apiPostRequest('product/invitation', $orderData);
                 }
             }
@@ -727,7 +759,7 @@ class ReviewsCoUk extends Module
     {
         return array(
             'Content-Type: application/json',
-            'store: ' . Configuration::get('REVIEWSCOUK_CONFIG_STOREID') ,
+            'store: ' . Configuration::get('REVIEWSCOUK_CONFIG_STOREID'),
             'apikey: ' . Configuration::get('REVIEWSCOUK_CONFIG_APIKEY')
         );
     }

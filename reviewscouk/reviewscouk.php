@@ -26,7 +26,7 @@ class ReviewsCoUk extends Module
     {
         $this->name = 'reviewscouk';
         $this->tab = 'others';
-        $this->version = '1.2.5';
+        $this->version = '1.2.6';
         $this->author = 'REVIEWS.io';
         $this->module_key = '7f216a86f806f343c2888324f3504ecf';
         $this->need_instance = 0;

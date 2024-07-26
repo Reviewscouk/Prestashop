@@ -26,7 +26,7 @@ class ReviewsCoUk extends Module
     {
         $this->name = 'reviewscouk';
         $this->tab = 'others';
-        $this->version = '1.2.5';
+        $this->version = '1.2.6';
         $this->author = 'REVIEWS.io';
         $this->module_key = '7f216a86f806f343c2888324f3504ecf';
         $this->need_instance = 0;
@@ -627,7 +627,13 @@ class ReviewsCoUk extends Module
         $first_name = $customer->firstname;
         $last_name = $customer->lastname;
         $email = $customer->email;
-        $products_array = $this->formatProducts($order->getProducts());
+        $products_array = [];
+
+        try {
+            $products_array = $this->formatProducts($order->getProducts());
+        } catch (\Exception $e) {
+            \Logger::addLog('REVIEWS.io Error: Failed to get products data.', 2);
+        }
         $orderData = array(
             'name' => $first_name . ' ' . $last_name,
             'email' => $email,
@@ -745,12 +751,16 @@ class ReviewsCoUk extends Module
     {
         if ($params['newOrderStatus']->shipped == '1') {
             if ((Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') || (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1')) {
-                $orderData = $this->prepareOrderData($params);
-                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') {
-                    $this->apiPostRequest('merchant/invitation', $orderData);
-                }
-                if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1') {
-                    $this->apiPostRequest('product/invitation', $orderData);
+                try {
+                    $orderData = $this->prepareOrderData($params);
+                    if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') {
+                        $this->apiPostRequest('merchant/invitation', $orderData);
+                    }
+                    if (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1') {
+                        $this->apiPostRequest('product/invitation', $orderData);
+                    }
+                } catch (\Exception $e) {
+                    \Logger::addLog('REVIEWS.io Error: Failed to get updated order status.', 2);
                 }
             }
         }

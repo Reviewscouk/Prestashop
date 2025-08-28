@@ -2,7 +2,7 @@
 <module>
 	<name>reviewscouk</name>
 	<displayName><![CDATA[Reviews.co.uk]]></displayName>
-	<version><![CDATA[1.2.3]]></version>
+	<version><![CDATA[1.2.7]]></version>
 	<description><![CDATA[Automatically queues Merchant and Product review requests. Also includes a reviews widget for your product pages.]]></description>
 	<author><![CDATA[Reviews.co.uk Integrations]]></author>
 	<tab><![CDATA[others]]></tab>

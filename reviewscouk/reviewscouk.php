@@ -26,22 +26,24 @@ class ReviewsCoUk extends Module
     {
         $this->name = 'reviewscouk';
         $this->tab = 'others';
-        $this->version = '1.2.6';
+        $this->version = '1.2.7';
         $this->author = 'REVIEWS.io';
         $this->module_key = '7f216a86f806f343c2888324f3504ecf';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array(
             'min' => '1.5',
-            'max' => '1.7.8.11'
+            'max' => '8.99.99'
         );
         $this->bootstrap = true;
+
+        parent::__construct();
+
         $this->displayName = $this->l('REVIEWS.io');
         $this->description = $this->l('Automatically queue Merchant and Product review requests, and display reviews on product pages.');
         $this->confirmUninstall = $this->l('No REVIEWS.io Integration? :(');
         if (($this->isConfigVarNad('REVIEWSCOUK_CONFIG_APIKEY') + ($this->isConfigVarNad('REVIEWSCOUK_CONFIG_STOREID'))) < 3) {
             $this->warning = $this->l('Make sure that your STORE ID and API KEY are set.');
         }
-        parent::__construct();
     }
     public function isConfigVarNad($config_var)
     {
@@ -54,16 +56,16 @@ class ReviewsCoUk extends Module
     public function install()
     {
         if (!function_exists('curl_init')) {
-            $this->setError($this->l('Reviews.co.uk requires cURL.'));
+            $this->_errors[] = $this->l('Reviews.co.uk requires cURL.');
+            return false;
         }
         if (Shop::isFeatureActive()) {
             Shop::setContext(Shop::CONTEXT_ALL);
         }
-        if (!parent::install() || !$this->registerHook('productfooter') || !$this->registerHook('postUpdateOrderStatus')) {
+        if (!parent::install() || !$this->registerHook('displayProductAdditionalInfo') || !$this->registerHook('actionOrderStatusPostUpdate')) {
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
     public function uninstall()
     {
@@ -74,11 +76,11 @@ class ReviewsCoUk extends Module
     }
     public function getContent()
     {
-        $output = null;
+        $output = '';
         if (Tools::isSubmit('submit' . $this->name)) {
             foreach ($this->configOptions as $updateOption) {
-                $val = (string)Tools::getValue($updateOption);
-                if (!empty($val)) {
+                $val = Tools::getValue($updateOption);
+                if ($val !== false && $val !== '') {
                     Configuration::updateValue($updateOption, $val);
                 }
             }
@@ -220,7 +222,7 @@ class ReviewsCoUk extends Module
         return preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/i', $color);
     }
 
-    public function hookproductfooter($params)
+    public function hookDisplayProductAdditionalInfo($params)
     {
         if (Configuration::get('REVIEWSCOUK_CONFIG_DISPLAY_PRODUCT_WIDGET') == '1') {
             $product_sku = Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $params['product']['id'] : $this->getSku($params);
@@ -610,13 +612,13 @@ class ReviewsCoUk extends Module
             </script>
 
             ';
-            $smarty = $this
-                ->context->smarty;
+            $smarty = Context::getContext()->smarty;
             $smarty->assign(array(
                 'data' => $data
             ));
             return $this->display(__FILE__, 'views/templates/front/widget.tpl');
         }
+        return '';
     }
     protected function prepareOrderData($params)
     {
@@ -653,9 +655,15 @@ class ReviewsCoUk extends Module
                 : array();
             $comb = count($combinations) > 0 ? (object) $combinations[0] : null;
             $image = Image::getCover((int)$p['id_product']);
-            $image_url = (new Link)->getImageLink($product->link_rewrite, $image['id_image']);
+            $link = new Link();
+            if ($image && isset($image['id_image'])) {
+                $image_url = $link->getImageLink($product->link_rewrite, $image['id_image'], 'large_default');
+                $full_image_url = (strpos($image_url, 'http') === 0) ? $image_url : $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . '/' . $image_url;
+            } else {
+                $full_image_url = '';
+            }
             $description = !empty($product->description) ? $product->description : $product->description_short;
-            $productId = isset($combination) ? $p['product_attribute_id'] : $p['id_product'];
+            $productId = isset($comb) ? $p['product_attribute_id'] : $p['id_product'];
             array_push(
                 $products_array,
                 array(
@@ -666,7 +674,7 @@ class ReviewsCoUk extends Module
                     'sku' => Configuration::get('REVIEWSCOUK_USE_ID') == '1' ? $productId : $this->getAttribute($product, $comb, 'reference'),
                     'gtin' => $this->getAttribute($product, $comb, 'ean13'),
                     'mpn' => $this->getAttribute($product, $comb, 'upc'),
-                    'image_url' => $_SERVER['REQUEST_SCHEME'] . '://' . $image_url,
+                    'image_url' => $full_image_url,
                     'category' => implode(' > ', $this->getProductCategories($product)),
                     'tags' => $product->getTags(Context::getContext()->language->id),
                     'meta_title' => !empty($product->meta_title) ? $product->meta_title : $product->name,
@@ -694,11 +702,11 @@ class ReviewsCoUk extends Module
 
         switch ($skuLocationOption) {
             case 1:
-                return $this->getAttribute((object)$params['product'], null, 'widget_reference');
+                return $this->getAttribute($params['product'], null, 'widget_reference');
             case 2:
-                return $this->getSkuFromReference((object) $params['product']);
+                return $this->getSkuFromReference($params['product']);
             default:
-                return $this->getAttribute((object)$params['product'], null, 'widget_reference');
+                return $this->getAttribute($params['product'], null, 'widget_reference');
         }
     }
 
@@ -709,10 +717,15 @@ class ReviewsCoUk extends Module
         }
 
         $skus = [];
-        $reference = (string) $product['reference'];
+        $reference = isset($product['reference']) ? (string) $product['reference'] : '';
+        if (empty($reference)) {
+            return '';
+        }
+
         $skuArray = preg_split("/[,;\s]/", $reference);
 
         foreach ($skuArray as $sku) {
+            $sku = trim($sku);
             if (!empty($sku)) {
                 $skus[] = $sku;
             }
@@ -723,23 +736,29 @@ class ReviewsCoUk extends Module
 
     private function getAttribute($product, $combination, $selector)
     {
-        if (isset($combination) && !empty($combination->{$selector})) {
+        if (isset($combination) && is_object($combination) && !empty($combination->{$selector})) {
             return $combination->{$selector};
         }
 
-        if (!empty($product->{$selector})) {
+        if (is_array($product)) {
+            if (!empty($product[$selector])) {
+                return $product[$selector];
+            }
+        } elseif (is_object($product) && !empty($product->{$selector})) {
             return $product->{$selector};
         }
 
         if ($selector == 'widget_reference') {
-            if (!empty($product->attributes) && is_array($product->attributes)) {
+            $attributes = is_array($product) ? (isset($product['attributes']) ? $product['attributes'] : []) : 
+                         (isset($product->attributes) ? $product->attributes : []);
+            
+            if (!empty($attributes) && is_array($attributes)) {
                 $skus = [];
-                foreach ($product->attributes as $attrArray) {
+                foreach ($attributes as $attrArray) {
                     if (isset($attrArray['reference'])) {
                         $skus[] = $attrArray['reference'];
                     }
                 }
-
                 return implode(';', $skus);
             }
         }
@@ -747,7 +766,7 @@ class ReviewsCoUk extends Module
         return '';
     }
 
-    public function hookpostUpdateOrderStatus($params)
+    public function hookActionOrderStatusPostUpdate($params)
     {
         if ($params['newOrderStatus']->shipped == '1') {
             if ((Configuration::get('REVIEWSCOUK_CONFIG_AUTO_MERCHANT') == '1') || (Configuration::get('REVIEWSCOUK_CONFIG_AUTO_PRODUCT') == '1')) {
@@ -788,7 +807,15 @@ class ReviewsCoUk extends Module
     }
     protected function apiPostRequest($url, $postData)
     {
+        if (!Configuration::get('REVIEWSCOUK_CONFIG_STOREID') || !Configuration::get('REVIEWSCOUK_CONFIG_APIKEY')) {
+            return;
+        }
+        
         $ch = curl_init($this->apiDomain() . $url);
+        if (!$ch) {
+            return;
+        }
+        
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $this->apiHeaders());
